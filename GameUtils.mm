@@ -1,5 +1,4 @@
 #import "GameUtils.h"
-#include <mach/mach.h>
 
 // ═══════════════════════════════════════════
 // OFFSETS — OB51 dump থেকে (latest patch-এ verify করো)
@@ -26,9 +25,6 @@
 
 uintptr_t g_baseAddress = 0;
 
-// ═══════════════════════════════════════════
-// MEMORY
-// ═══════════════════════════════════════════
 uintptr_t GetBaseAddress() {
     if (g_baseAddress) return g_baseAddress;
     for (uint32_t i = 0; i < _dyld_image_count(); i++) {
@@ -42,24 +38,6 @@ uintptr_t GetBaseAddress() {
     return 0;
 }
 
-template<typename T>
-T ReadMem(uintptr_t addr) {
-    T val = {};
-    if (!addr) return val;
-    vm_read_overwrite(mach_task_self(), addr, sizeof(T),
-                      (vm_address_t)&val, nullptr);
-    return val;
-}
-
-template<typename T>
-void WriteMem(uintptr_t addr, T val) {
-    if (!addr) return;
-    vm_write(mach_task_self(), addr, (vm_address_t)&val, sizeof(T));
-}
-
-// ═══════════════════════════════════════════
-// GAME OBJECTS
-// ═══════════════════════════════════════════
 uintptr_t GetCurrentMatch() {
     typedef uintptr_t (*Fn)(void);
     Fn fn = (Fn)(GetBaseAddress() + OFF_CURRENT_MATCH);
@@ -91,9 +69,6 @@ std::vector<uintptr_t> GetAllPlayers() {
     return out;
 }
 
-// ═══════════════════════════════════════════
-// PLAYER DATA
-// ═══════════════════════════════════════════
 Vec3 GetPlayerPosition(uintptr_t player) {
     typedef uintptr_t (*GetTransform)(uintptr_t);
     GetTransform gt = (GetTransform)(GetBaseAddress() + OFF_GET_TRANSFORM);
@@ -124,7 +99,6 @@ bool IsEnemy(uintptr_t local, uintptr_t other) {
     if (!local || !other) return false;
     typedef bool (*Fn)(uintptr_t, uintptr_t);
     Fn fn = (Fn)(GetBaseAddress() + OFF_IS_LOCAL_TEAMMATE);
-    // IsLocalTeammate true হলে enemy না
     return !fn(local, other);
 }
 
@@ -144,9 +118,6 @@ int GetMaxHP(uintptr_t player) {
     return fn ? fn(player) : 100;
 }
 
-// ═══════════════════════════════════════════
-// TARGETING
-// ═══════════════════════════════════════════
 float Distance2D(Vec2 a, Vec2 b) {
     return sqrtf(powf(a.x - b.x, 2) + powf(a.y - b.y, 2));
 }
