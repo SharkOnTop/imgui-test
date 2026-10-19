@@ -4,14 +4,27 @@
 #include <cstdint>
 #include <vector>
 #include <cmath>
+#include <mach/mach.h>
 
 struct Vec2 { float x, y; };
 struct Vec3 { float x, y, z; };
 
 // Memory
 uintptr_t GetBaseAddress();
-template<typename T> T ReadMem(uintptr_t addr);
-template<typename T> void WriteMem(uintptr_t addr, T val);
+
+template<typename T>
+T ReadMem(uintptr_t addr) {
+    T val = {};
+    if (!addr) return val;
+    vm_read_overwrite(mach_task_self(), addr, sizeof(T), (vm_address_t)&val, nullptr);
+    return val;
+}
+
+template<typename T>
+void WriteMem(uintptr_t addr, T val) {
+    if (!addr) return;
+    vm_write(mach_task_self(), addr, (vm_address_t)&val, sizeof(T));
+}
 
 // Game objects
 uintptr_t GetLocalPlayer();
