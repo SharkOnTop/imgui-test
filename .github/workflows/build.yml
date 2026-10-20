@@ -24,6 +24,9 @@ jobs:
         cd imgui
         git checkout v1.90.9
 
+    - name: Install ldid
+      run: brew install ldid
+
     - name: Build Package
       run: |
         make clean package
