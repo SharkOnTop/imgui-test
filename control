@@ -1,1 +1,9 @@
-
+Package: com.shark.sharktool
+Name: SharkTool
+Version: 1.0.0
+Architecture: iphoneos-arm64
+Description: FF MAX Mod Menu by Alif
+Maintainer: Alif
+Author: Alif
+Section: Tweaks
+Depends: mobilesubstrate
