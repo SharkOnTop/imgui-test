@@ -1,0 +1,11 @@
+{
+    Filter = {
+        Bundles = (
+            "com.dts.freefiremax"
+        );
+        Executables = (
+            "FreeFire",
+            "UnityFramework"
+        );
+    };
+}
