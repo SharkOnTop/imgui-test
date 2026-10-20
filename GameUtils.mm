@@ -1,5 +1,6 @@
 #import "GameUtils.h"
 #include <mach-o/dyld.h>
+
 // ═══════════════════════════════════════════
 // OFFSETS — OB51 dump থেকে (latest patch-এ verify করো)
 // ═══════════════════════════════════════════
@@ -39,12 +40,14 @@ uintptr_t GetBaseAddress() {
 }
 
 uintptr_t GetCurrentMatch() {
+    if (!GetBaseAddress()) return 0; // Crash Protection
     typedef uintptr_t (*Fn)(void);
     Fn fn = (Fn)(GetBaseAddress() + OFF_CURRENT_MATCH);
     return fn ? fn() : 0;
 }
 
 uintptr_t GetLocalPlayer() {
+    if (!GetBaseAddress()) return 0; // Crash Protection
     typedef uintptr_t (*Fn)(void);
     Fn fn = (Fn)(GetBaseAddress() + OFF_CURRENT_LOCAL_PLAYER);
     return fn ? fn() : 0;
@@ -52,6 +55,10 @@ uintptr_t GetLocalPlayer() {
 
 std::vector<uintptr_t> GetAllPlayers() {
     std::vector<uintptr_t> out;
+    
+    // Crash Protection: অফসেট 0 হলে কিছুই রিটার্ন করবে না
+    if (OFF_MATCH_ALL_PLAYERS == 0x000000) return out; 
+
     uintptr_t match = GetCurrentMatch();
     if (!match) return out;
 
@@ -70,36 +77,51 @@ std::vector<uintptr_t> GetAllPlayers() {
 }
 
 Vec3 GetPlayerPosition(uintptr_t player) {
+    if (!player || !GetBaseAddress()) return {0,0,0};
     typedef uintptr_t (*GetTransform)(uintptr_t);
     GetTransform gt = (GetTransform)(GetBaseAddress() + OFF_GET_TRANSFORM);
+    if (!gt) return {0,0,0};
+    
     uintptr_t tr = gt(player);
     if (!tr) return {0,0,0};
 
     typedef Vec3 (*GetPos)(uintptr_t);
     GetPos gp = (GetPos)(GetBaseAddress() + OFF_GET_POSITION);
+    if (!gp) return {0,0,0};
+    
     return gp(tr);
 }
 
 Vec3 GetHeadPosition(uintptr_t player) {
+    if (!player || !GetBaseAddress()) return {0,0,0};
     typedef uintptr_t (*GetHead)(uintptr_t);
     GetHead gh = (GetHead)(GetBaseAddress() + OFF_GET_HEAD_COLLIDER);
+    if (!gh) return {0,0,0};
+    
     uintptr_t col = gh(player);
     if (!col) return {0,0,0};
     return GetPlayerPosition(col);
 }
 
 Vec2 WorldToScreen(Vec3 world) {
+    if (!GetBaseAddress()) return {-1, -1};
     typedef Vec3 (*Fn)(Vec3);
     Fn fn = (Fn)(GetBaseAddress() + OFF_WORLD_TO_SCREEN);
+    if (!fn) return {-1, -1};
+    
     Vec3 s = fn(world);
     return {s.x, s.y};
 }
 
 bool IsEnemy(uintptr_t local, uintptr_t other) {
     if (!local || !other) return false;
-    typedef bool (*Fn)(uintptr_t, uintptr_t);
-    Fn fn = (Fn)(GetBaseAddress() + OFF_IS_LOCAL_TEAMMATE);
-    return !fn(local, other);
+    
+    // Crash Protection: টিম আইডি অফসেট 0 হলে সবারে এনিমি হিসেবে ধরে নিবে (যাতে ক্র্যাশ না হয়)
+    if (OFF_TEAM_ID == 0x000000) return true; 
+    
+    int myTeam = ReadMem<int>(local + OFF_TEAM_ID);
+    int otherTeam = ReadMem<int>(other + OFF_TEAM_ID);
+    return myTeam != otherTeam;
 }
 
 bool IsAlive(uintptr_t player) {
@@ -107,12 +129,14 @@ bool IsAlive(uintptr_t player) {
 }
 
 int GetCurHP(uintptr_t player) {
+    if (!player || !GetBaseAddress()) return 0;
     typedef int (*Fn)(uintptr_t);
     Fn fn = (Fn)(GetBaseAddress() + OFF_GET_CUR_HP);
     return fn ? fn(player) : 0;
 }
 
 int GetMaxHP(uintptr_t player) {
+    if (!player || !GetBaseAddress()) return 100;
     typedef int (*Fn)(uintptr_t);
     Fn fn = (Fn)(GetBaseAddress() + OFF_GET_MAX_HP);
     return fn ? fn(player) : 100;
@@ -148,6 +172,7 @@ uintptr_t SelectNearestTarget(Vec2 screenCenter, float fov) {
 }
 
 void SetAimRotation(uintptr_t localPlayer, Vec3 rotation) {
+    if (!localPlayer || !GetBaseAddress()) return;
     typedef void (*Fn)(uintptr_t, Vec3);
     Fn fn = (Fn)(GetBaseAddress() + OFF_SET_AIM_ROTATION);
     if (fn) fn(localPlayer, rotation);
