@@ -1,5 +1,5 @@
 #import "GameUtils.h"
-
+#include <mach-o/dyld.h>
 // ═══════════════════════════════════════════
 // OFFSETS — OB51 dump থেকে (latest patch-এ verify করো)
 // ═══════════════════════════════════════════
